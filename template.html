@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Симулятор зрения — как видит каждый глаз</title>
+<meta name="description" content="Выставьте диоптрии отдельно для левого и правого глаза (−12…+12) и посмотрите, как для вас выглядела бы ваша картинка. Своё фото или таблица букв — прямо в браузере.">
+<meta name="theme-color" content="#0a0c11">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0c11'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' fill='none' stroke='%233ad9c0' stroke-width='2.2'/%3E%3Ccircle cx='16' cy='16' r='3.4' fill='%23ffb648'/%3E%3C/svg%3E">
+
+<!-- ============================================================
+     EMBED ДЛЯ DISCORD / TELEGRAM / TWITTER
+     Замените YOUR-USERNAME/YOUR-REPO на адрес вашего сайта на GitHub Pages.
+     Пример: было  YOUR-USERNAME/YOUR-REPO
+              стало myname/vision-sim
+     Всего 3 строки ниже (og:url, og:image, twitter:image).
+     ============================================================ -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Симулятор зрения">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Симулятор зрения — как видит каждый глаз">
+<meta property="og:description" content="Диоптрии отдельно для левого и правого глаза (−12…+12) и ваша картинка так, как её видит каждый глаз. Загрузите своё фото или возьмите таблицу букв.">
+<meta property="og:url" content="https://YOUR-USERNAME.github.io/YOUR-REPO/">
+<meta property="og:image" content="https://YOUR-USERNAME.github.io/YOUR-REPO/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Симулятор зрения: слева чёткая картинка, справа — размытая при −3,25 диоптрии">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Симулятор зрения — как видит каждый глаз">
+<meta name="twitter:description" content="Диоптрии отдельно для каждого глаза и ваша картинка так, как её видит каждый глаз.">
+<meta name="twitter:image" content="https://YOUR-USERNAME.github.io/YOUR-REPO/og-image.png">
+<style>
+  :root{
+    --bg:#0a0c11;
+    --bg-2:#0f131b;
+    --card:#141a24;
+    --card-2:#1a2130;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.16);
+    --txt:#eef2f8;
+    --muted:#93a1b5;
+    --left:#3ad9c0;
+    --right:#ffb648;
+    --accent:#8b7cf6;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 700px at 12% -10%, rgba(58,217,192,.12), transparent 60%),
+      radial-gradient(900px 600px at 92% 0%, rgba(255,182,72,.10), transparent 55%),
+      radial-gradient(800px 800px at 50% 120%, rgba(139,124,246,.10), transparent 60%),
+      var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100%;
+  }
+  button,input,select{font:inherit;color:inherit}
+  button{cursor:pointer;background:none;border:0}
+  .app{
+    display:grid;
+    grid-template-columns:372px minmax(0,1fr);
+    gap:22px;
+    padding:22px;
+    max-width:1680px;
+    margin:0 auto;
+    min-height:100vh;
+    align-items:start;
+  }
+
+  /* ---------- header ---------- */
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .logo{
+    width:42px;height:42px;border-radius:13px;flex:none;
+    background:linear-gradient(150deg,#3ad9c0,#8b7cf6 55%,#ffb648);
+    display:grid;place-items:center;
+    box-shadow:0 8px 24px -8px rgba(139,124,246,.75);
+  }
+  .logo svg{width:24px;height:24px;display:block}
+  .brand h1{font-size:16.5px;margin:0;letter-spacing:-.2px;font-weight:650}
+  .brand p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+
+  /* ---------- panel ---------- */
+  .panel{
+    background:linear-gradient(180deg,rgba(24,31,44,.92),rgba(17,22,31,.92));
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:16px;
+    backdrop-filter:blur(12px);
+    box-shadow:0 30px 60px -40px #000;
+    position:sticky;top:22px;
+    max-height:calc(100vh - 44px);
+    overflow:auto;
+    scrollbar-width:thin;
+  }
+  .panel::-webkit-scrollbar{width:9px}
+  .panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:9px}
+
+  .section-label{
+    font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:18px 2px 9px;
+  }
+  .section-label:first-child{margin-top:2px}
+
+  /* ---------- eye cards ---------- */
+  .eye{
+    --accent-2:var(--left);
+    position:relative;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:12px 12px 10px;
+    background-color: var(--card);
+    background-image: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.055), transparent 55%);
+    background-image: radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--accent-2) 13%, transparent), transparent 55%);
+    margin-bottom:10px;
+    transition:border-color .18s ease, box-shadow .18s ease;
+  }
+  .eye[data-eye="right"]{--accent-2:var(--right)}
+  .eye:focus-within{
+    border-color:color-mix(in srgb, var(--accent-2) 55%, transparent);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--accent-2) 14%, transparent);
+  }
+  .eye-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 12px var(--accent-2);flex:none}
+  .eye-name{font-size:13.5px;font-weight:600;letter-spacing:-.1px;white-space:nowrap;flex:none}
+  .eye-abbr{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--muted);border:1px solid var(--line-strong);padding:2px 5px;border-radius:6px}
+  .eye-state{margin-left:auto;font-size:10.5px;line-height:1.25;color:var(--muted);text-align:right;max-width:118px}
+
+  .value-row{display:flex;align-items:center;gap:8px}
+  .step{
+    width:42px;height:42px;flex:none;border-radius:12px;
+    border:1px solid var(--line-strong);
+    background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+    display:grid;place-items:center;
+    font-size:21px;line-height:1;font-weight:400;
+    color:var(--txt);
+    transition:transform .1s ease, background .15s ease, border-color .15s ease;
+    user-select:none;
+  }
+  .step:hover{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border-color:var(--line-strong)}
+  .step:active{transform:scale(.94)}
+  .step:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+  .value{
+    flex:1;min-width:0;text-align:center;
+    font-variant-numeric:tabular-nums;
+    font-size:26px;font-weight:650;letter-spacing:-.6px;
+    display:flex;align-items:baseline;justify-content:center;gap:4px;
+    white-space:nowrap;
+  }
+  .value .unit{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0}
+  .value.is-zero{color:var(--muted)}
+  .value{cursor:text;border-radius:8px;padding:1px 2px;transition:background .15s ease}
+  .value:hover{background:rgba(255,255,255,.05)}
+  .value-input{
+    display:none;width:100%;min-width:0;text-align:center;
+    background:rgba(255,255,255,.06);border:0;border-bottom:2px solid var(--accent-2);
+    color:var(--txt);font-size:26px;font-weight:650;letter-spacing:-.6px;
+    font-variant-numeric:tabular-nums;outline:none;padding:0 0 1px;border-radius:6px 6px 0 0;
+  }
+  .value.is-editing{background:transparent}
+  .value.is-editing .num,.value.is-editing .unit{display:none}
+  .value.is-editing .value-input{display:block}
+
+  .slider-wrap{position:relative;margin:11px 2px 4px}
+  input[type="range"]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:22px;background:transparent;display:block;margin:0;
+    cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track{
+    height:6px;border-radius:99px;
+    background:
+      linear-gradient(90deg, transparent calc(50% - 1px), rgba(255,255,255,.35) calc(50% - 1px), rgba(255,255,255,.35) calc(50% + 1px), transparent calc(50% + 1px)),
+      linear-gradient(90deg, rgba(58,217,192,.55) 0%, rgba(255,255,255,.16) 50%, rgba(255,182,72,.55) 100%);
+  }
+  input[type="range"]::-moz-range-track{
+    height:6px;border-radius:99px;
+    background:linear-gradient(90deg, rgba(58,217,192,.55) 0%, rgba(255,255,255,.16) 50%, rgba(255,182,72,.55) 100%);
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:20px;height:20px;border-radius:50%;
+    background:#fff;
+    border:3px solid var(--accent-2);
+    margin-top:-7px;
+    box-shadow:0 2px 10px rgba(0,0,0,.55);
+    transition:transform .12s ease;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--accent-2);
+    box-shadow:0 2px 10px rgba(0,0,0,.55);
+  }
+  input[type="range"]:active::-webkit-slider-thumb{transform:scale(1.12)}
+  input[type="range"]:focus-visible{outline:2px solid var(--accent-2);outline-offset:4px;border-radius:99px}
+  .scale-legend{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:-2px;padding:0 2px}
+  .scale-legend span:nth-child(2){opacity:.75}
+
+  .chips{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+  .chip{
+    flex:1 1 0;min-width:0;
+    font-size:11.5px;font-weight:600;
+    padding:5px 0;border-radius:8px;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.03);
+    color:var(--muted);
+    transition:.14s ease;
+    text-align:center;
+  }
+  .chip:hover{color:var(--txt);border-color:var(--line-strong);background:rgba(255,255,255,.08)}
+  .chip.is-active{color:#0c1118;background:var(--accent-2);border-color:transparent}
+
+  /* ---------- presets ---------- */
+  .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .preset{
+    font-size:12px;padding:8px 9px;border-radius:10px;text-align:left;
+    border:1px solid var(--line);background:rgba(255,255,255,.025);
+    color:var(--txt);transition:.14s ease;line-height:1.25;
+  }
+  .preset small{display:block;color:var(--muted);font-size:10.5px;margin-top:2px;letter-spacing:.01em}
+  .preset:hover{background:rgba(255,255,255,.07);border-color:var(--line-strong);transform:translateY(-1px)}
+  .preset:active{transform:none}
+
+  /* ---------- source ---------- */
+  .drop{
+    border:1.5px dashed rgba(255,255,255,.22);
+    border-radius:14px;
+    padding:16px 12px;
+    text-align:center;
+    transition:.16s ease;
+    background:rgba(255,255,255,.02);
+  }
+  .drop.is-over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  .drop-icon{font-size:20px;opacity:.8;line-height:1}
+  .drop-title{font-size:13px;font-weight:600;margin-top:6px}
+  .drop-sub{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .drop-btn{
+    margin-top:9px;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:9px;
+    background:linear-gradient(180deg,#8b7cf6,#6f5de0);color:#fff;
+    box-shadow:0 8px 20px -10px #8b7cf6;
+  }
+  .drop-btn:hover{filter:brightness(1.08)}
+  .source-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}
+  .ghost-btn{
+    font-size:12px;padding:8px 6px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(255,255,255,.03);color:var(--muted);transition:.14s ease;
+  }
+  .ghost-btn:hover{color:var(--txt);background:rgba(255,255,255,.08);border-color:var(--line-strong)}
+  .ghost-btn.is-active{color:#0c1118;background:#fff;border-color:transparent;font-weight:600}
+
+  /* ---------- advanced ---------- */
+  details.adv{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
+  details.adv summary{
+    font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;list-style:none;
+    display:flex;align-items:center;gap:7px;user-select:none;
+  }
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary::before{content:"▸";font-size:11px;transition:transform .16s ease;display:inline-block}
+  details.adv[open] summary::before{transform:rotate(90deg)}
+  details.adv summary:hover{color:var(--txt)}
+  .adv-body{padding-top:12px}
+  .field{margin-bottom:14px}
+  .field-head{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:6px}
+  .field-head span:last-child{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+  .field-head span:first-child{color:var(--muted)}
+  .field-note{font-size:11px;color:var(--muted);line-height:1.4;margin-top:5px}
+  .mini-row{display:flex;gap:5px;margin-top:7px}
+  .mini{
+    flex:1;font-size:11px;font-weight:600;padding:5px 0;border-radius:8px;
+    border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);
+    transition:.14s ease;
+  }
+  .mini:hover{color:var(--txt);background:rgba(255,255,255,.08);border-color:var(--line-strong)}
+  .mini.is-active{color:#0c1118;background:#fff;border-color:transparent}
+  .adv-body input[type="range"]::-webkit-slider-thumb{border-color:var(--accent);width:16px;height:16px;margin-top:-5px}
+  .adv-body input[type="range"]::-moz-range-thumb{border-color:var(--accent);width:13px;height:13px}
+  .adv-body input[type="range"]::-webkit-slider-runnable-track{background:rgba(255,255,255,.16)}
+  .adv-body input[type="range"]::-moz-range-track{background:rgba(255,255,255,.16)}
+  .check{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--txt);cursor:pointer;line-height:1.35}
+  .check input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--accent);flex:none;cursor:pointer}
+  .check small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+
+  /* ---------- stage ---------- */
+  .stage{display:flex;flex-direction:column;min-width:0;height:calc(100vh - 44px);min-height:460px}
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .tabs{display:flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+  .tab{
+    font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:9px;color:var(--muted);transition:.14s ease;
+    display:flex;align-items:center;gap:6px;
+  }
+  .tab:hover{color:var(--txt)}
+  .tab.is-active{background:rgba(255,255,255,.94);color:#0b0e14}
+  .tab i{width:7px;height:7px;border-radius:50%;display:block}
+  .tab[data-mode="left"] i{background:var(--left)}
+  .tab[data-mode="right"] i{background:var(--right)}
+  .tab[data-mode="both"] i,.tab[data-mode="fused"] i{background:linear-gradient(90deg,var(--left),var(--right))}
+  .spacer{flex:1}
+  .hold-btn{
+    font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:11px;
+    border:1px solid var(--line-strong);background:rgba(255,255,255,.05);color:var(--txt);
+    transition:.14s ease;user-select:none;display:flex;align-items:center;gap:7px;
+  }
+  .hold-btn:hover{background:rgba(255,255,255,.11)}
+  .hold-btn.is-active{background:#fff;color:#0b0e14;border-color:transparent}
+
+  .views{flex:1;display:grid;gap:14px;min-height:0}
+  .views[data-mode="both"]{grid-template-columns:1fr 1fr}
+  .views[data-mode="left"],.views[data-mode="right"],.views[data-mode="fused"]{grid-template-columns:1fr}
+  .view{
+    position:relative;border-radius:18px;overflow:hidden;
+    background:#0b0e14;border:1px solid var(--line);
+    box-shadow:0 30px 70px -50px #000, inset 0 0 0 1px rgba(255,255,255,.02);
+    min-height:0;isolation:isolate;
+  }
+  .view[hidden]{display:none}
+  .view canvas{display:block;width:100%;height:100%;position:absolute;inset:0}
+  .badge{
+    position:absolute;left:12px;top:12px;
+    display:flex;align-items:center;gap:7px;
+    padding:6px 11px 6px 9px;border-radius:99px;
+    font-size:12px;font-weight:600;
+    background:rgba(9,12,18,.62);
+    border:1px solid rgba(255,255,255,.14);
+    backdrop-filter:blur(9px) saturate(140%);
+    color:#fff;letter-spacing:.01em;
+    max-width:calc(100% - 24px);
+  }
+  .badge .b-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .view[data-eye="left"] .b-dot{background:var(--left);box-shadow:0 0 9px var(--left)}
+  .view[data-eye="right"] .b-dot{background:var(--right);box-shadow:0 0 9px var(--right)}
+  .view[data-eye="fused"] .b-dot{background:linear-gradient(90deg,var(--left),var(--right));box-shadow:0 0 10px rgba(255,255,255,.35)}
+  .badge .b-val{font-variant-numeric:tabular-nums;opacity:.82;font-weight:500}
+  .badge .b-tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.5);text-transform:uppercase}
+  .views[data-mode="both"] .badge{font-size:11.5px;padding:5px 10px 5px 8px}
+
+  .caption{
+    margin-top:12px;font-size:12px;color:var(--muted);line-height:1.5;
+    display:flex;gap:8px;align-items:flex-start;
+  }
+  .caption b{color:var(--txt);font-weight:600}
+  .caption .info{
+    width:16px;height:16px;border-radius:50%;border:1px solid var(--line-strong);
+    display:grid;place-items:center;font-size:10px;flex:none;margin-top:1px;color:var(--muted);
+  }
+  /* ---------- модальное окно «почему» ---------- */
+  .modal{
+    border:0;padding:0;background:transparent;color:var(--txt);
+    max-width:min(780px,calc(100vw - 24px));width:100%;
+  }
+  .modal::backdrop{background:rgba(5,7,11,.74);backdrop-filter:blur(7px)}
+  .modal-card{
+    background:linear-gradient(180deg,#161d29,#0f141d);
+    border:1px solid var(--line-strong);border-radius:20px;
+    padding:22px 24px 24px;max-height:86vh;overflow:auto;
+    box-shadow:0 40px 90px -40px #000;
+    scrollbar-width:thin;
+  }
+  .modal-card::-webkit-scrollbar{width:9px}
+  .modal-card::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:9px}
+  .modal-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:10px}
+  .modal-head h2{margin:0;font-size:20px;line-height:1.25;letter-spacing:-.3px;font-weight:700}
+  .modal-close{
+    margin-left:auto;flex:none;width:32px;height:32px;border-radius:10px;
+    border:1px solid var(--line-strong);background:rgba(255,255,255,.05);
+    color:var(--muted);font-size:14px;line-height:1;transition:.14s ease;
+  }
+  .modal-close:hover{color:var(--txt);background:rgba(255,255,255,.12)}
+  .modal p{margin:0 0 12px;font-size:13.5px;line-height:1.6;color:#c3cdda}
+  .modal .lead{font-size:14.5px;color:var(--txt)}
+  .eye-svg{width:100%;height:auto;display:block;margin:6px 0 14px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid var(--line);padding:8px}
+  .why-item{display:flex;gap:11px;margin-bottom:13px}
+  .why-item .why-ico{
+    flex:none;width:26px;height:26px;border-radius:9px;display:grid;place-items:center;
+    font-size:12px;font-weight:800;margin-top:1px;color:#0b0e14;
+  }
+  .why-item p{margin:0;font-size:13.5px;line-height:1.55;color:#c3cdda}
+  .why-item b{color:var(--txt)}
+  .why-note{
+    font-size:12px;line-height:1.5;color:var(--muted);
+    border-left:2px solid rgba(139,124,246,.6);padding-left:11px;margin-top:16px;
+  }
+  @media (max-width:520px){
+    .modal-card{padding:18px 16px 20px}
+    .modal-head h2{font-size:17px}
+  }
+
+  /* ---------- вкладки и карточки внутри справки ---------- */
+  .modal-tabs{display:flex;gap:4px;margin:0 0 16px;padding:0 0 11px;border-bottom:1px solid var(--line);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .mtab{
+    flex:none;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:9px;
+    color:var(--muted);border:1px solid transparent;transition:.14s ease;
+  }
+  .mtab:hover{color:var(--txt);background:rgba(255,255,255,.07)}
+  .mtab.is-active{background:#fff;color:#0b0e14}
+  .mgroup-title{
+    font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);margin:20px 0 9px;
+  }
+  .dis-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .dis{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:13px;padding:11px 12px}
+  .dis-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:5px}
+  .dis-name{font-size:13px;font-weight:700;color:var(--txt)}
+  .dis-latin{font-size:10.5px;color:var(--muted)}
+  .dis-badge{
+    font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+    padding:2px 5px;border-radius:6px;margin-left:auto;white-space:nowrap;
+  }
+  .dis-badge.ok{background:rgba(58,217,192,.15);color:#63e8d3;border:1px solid rgba(58,217,192,.32)}
+  .dis-badge.no{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--line-strong)}
+  .modal .dis p{margin:0;font-size:12px;line-height:1.5;color:#a9b6c7}
+  .dis-try{
+    margin-top:8px;font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:8px;
+    border:1px solid var(--line-strong);background:rgba(255,255,255,.05);
+    color:var(--txt);transition:.14s ease;
+  }
+  .dis-try:hover{background:#fff;color:#0b0e14;border-color:transparent}
+  .faq{border-top:1px dashed var(--line-strong);margin-top:16px;padding-top:13px}
+  .faq-q{font-size:13px;font-weight:700;color:var(--txt);margin:11px 0 3px}
+  .modal .faq-a{margin:0;font-size:12.5px;line-height:1.55;color:#a9b6c7}
+  @media (max-width:640px){
+    .dis-grid{grid-template-columns:1fr}
+    .mtab{font-size:12px;padding:7px 10px}
+  }
+
+  @media (max-width:1080px){
+    .app{grid-template-columns:1fr;padding:14px;gap:14px}
+    .panel{position:static;max-height:none}
+    .stage{height:auto;min-height:0}
+    .views[data-mode="both"]{grid-template-columns:1fr}
+    .view{aspect-ratio:3/2;min-height:0}
+  }
+  @media (max-width:520px){
+    .tab{padding:6px 9px;font-size:11.5px;gap:0}
+    .tab i{display:none}
+    .app{padding:10px}
+    .panel{padding:12px}
+    .presets{grid-template-columns:1fr}
+    .value{font-size:23px}
+    .step{width:38px;height:38px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= PANEL ================= -->
+  <aside class="panel">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#08110f" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/>
+          <circle cx="12" cy="12" r="3.1" fill="#08110f" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Симулятор зрения</h1>
+        <p>Диоптрии для каждого глаза отдельно</p>
+      </div>
+    </div>
+
+    <div class="section-label">Рефракция глаз</div>
+
+    <!-- LEFT EYE -->
+    <div class="eye" data-eye="left" tabindex="-1">
+      <div class="eye-head">
+        <span class="dot"></span>
+        <span class="eye-name">Левый глаз</span>
+        <span class="eye-abbr">OS</span>
+        <span class="eye-state" data-state></span>
+      </div>
+      <div class="value-row">
+        <button class="step" data-delta="-0.25" aria-label="Уменьшить на 0,25 диоптрии">−</button>
+        <div class="value" title="Нажмите, чтобы ввести точное значение"><span class="num">0,00</span><span class="unit">Д</span><input class="value-input" type="text" inputmode="decimal" aria-label="Точное значение в диоптриях"></div>
+        <button class="step" data-delta="0.25" aria-label="Увеличить на 0,25 диоптрии">+</button>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" min="-12" max="12" step="0.25" value="0" aria-label="Рефракция левого глаза, диоптрии">
+      </div>
+      <div class="scale-legend"><span>−12</span><span>0</span><span>+12</span></div>
+      <div class="chips">
+        <button class="chip" data-set="-5">−5</button>
+        <button class="chip" data-set="-3">−3</button>
+        <button class="chip" data-set="-1">−1</button>
+        <button class="chip" data-set="0">0</button>
+        <button class="chip" data-set="1">+1</button>
+        <button class="chip" data-set="3">+3</button>
+      </div>
+    </div>
+
+    <!-- RIGHT EYE -->
+    <div class="eye" data-eye="right" tabindex="-1">
+      <div class="eye-head">
+        <span class="dot"></span>
+        <span class="eye-name">Правый глаз</span>
+        <span class="eye-abbr">OD</span>
+        <span class="eye-state" data-state></span>
+      </div>
+      <div class="value-row">
+        <button class="step" data-delta="-0.25" aria-label="Уменьшить на 0,25 диоптрии">−</button>
+        <div class="value" title="Нажмите, чтобы ввести точное значение"><span class="num">0,00</span><span class="unit">Д</span><input class="value-input" type="text" inputmode="decimal" aria-label="Точное значение в диоптриях"></div>
+        <button class="step" data-delta="0.25" aria-label="Увеличить на 0,25 диоптрии">+</button>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" min="-12" max="12" step="0.25" value="0" aria-label="Рефракция правого глаза, диоптрии">
+      </div>
+      <div class="scale-legend"><span>−12</span><span>0</span><span>+12</span></div>
+      <div class="chips">
+        <button class="chip" data-set="-5">−5</button>
+        <button class="chip" data-set="-3">−3</button>
+        <button class="chip" data-set="-1">−1</button>
+        <button class="chip" data-set="0">0</button>
+        <button class="chip" data-set="1">+1</button>
+        <button class="chip" data-set="3">+3</button>
+      </div>
+    </div>
+
+    <button class="ghost-btn" id="linkEyes" style="width:100%;margin-top:2px" aria-pressed="false">
+      Синхронизировать оба глаза
+    </button>
+
+    <div class="section-label">Готовые примеры</div>
+    <div class="presets">
+      <button class="preset" data-preset="0,0">Норма<small>0 / 0 Д</small></button>
+      <button class="preset" data-preset="-2,-2">Близорукость<small>−2 / −2 Д</small></button>
+      <button class="preset" data-preset="-4.5,-4.5">Сильная близорукость<small>−4,5 / −4,5 Д</small></button>
+      <button class="preset" data-preset="1.2,1.5">Разные глаза<small>+1,2 / +1,5 Д</small></button>
+      <button class="preset" data-preset="-0.75,-3.25">Анизометропия<small>−0,75 / −3,25 Д</small></button>
+      <button class="preset" data-preset="2.5,2.5">Дальнозоркость<small>+2,5 / +2,5 Д</small></button>
+    </div>
+
+    <div class="section-label">Картинка</div>
+    <div class="drop" id="drop">
+      <div class="drop-icon">🖼️</div>
+      <div class="drop-title">Перетащите фото сюда</div>
+      <div class="drop-sub">или вставьте из буфера обмена (Ctrl&nbsp;+&nbsp;V)<br>JPG, PNG, WebP — всё остаётся в браузере</div>
+      <button class="drop-btn" id="pickBtn">Выбрать файл</button>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+    <div class="source-row">
+      <button class="ghost-btn is-active" data-src="photo">Пример: улица</button>
+      <button class="ghost-btn" data-src="chart">Таблица букв</button>
+    </div>
+
+    <details class="adv">
+      <summary>Параметры модели</summary>
+      <div class="adv-body">
+        <div class="field">
+          <div class="field-head"><span>Диаметр зрачка</span><span id="pupilVal">4,5 мм</span></div>
+          <input type="range" id="pupil" min="2" max="8" step="0.25" value="4.5">
+          <div class="field-note">Чем шире зрачок (темнее освещение), тем сильнее размывается картинка при той же рефракции.</div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span>Угловой размер экрана</span><span id="fovVal">40°</span></div>
+          <input type="range" id="fov" min="10" max="90" step="1" value="40">
+          <div class="mini-row">
+            <button class="mini" data-fov="14">телефон</button>
+            <button class="mini" data-fov="35">ноутбук</button>
+            <button class="mini" data-fov="60">телевизор</button>
+          </div>
+          <div class="field-note">Насколько крупно картинка занимает поле зрения. Чем меньше — тем крупнее выглядит картинка и тем сильнее заметно размытие.</div>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="accom">
+          <span>Учитывать аккомодацию
+            <small>Молодой глаз «подстраивается» и частично компенсирует плюсовые диоптрии (до ~6 Д).</small>
+          </span>
+        </label>
+      </div>
+    </details>
+  </aside>
+
+  <!-- ================= STAGE ================= -->
+  <main class="stage">
+    <div class="toolbar">
+      <div class="tabs" role="tablist">
+        <button class="tab is-active" data-mode="fused"><i></i>Как я вижу</button>
+        <button class="tab" data-mode="both"><i></i>Два глаза</button>
+        <button class="tab" data-mode="left"><i></i>Левый</button>
+        <button class="tab" data-mode="right"><i></i>Правый</button>
+      </div>
+      <div class="spacer"></div>
+      <button class="hold-btn" id="whyBtn" title="Почему плюс размывает так же, как минус">
+        <span style="font-weight:800;color:var(--accent)">?</span> Почему + так же?
+      </button>
+      <button class="hold-btn" id="holdOriginal" title="Показать картинку без искажений">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="holdLabel">Удерживать: оригинал</span>
+      </button>
+    </div>
+
+    <div class="views" id="views" data-mode="fused">
+      <div class="view" data-eye="fused">
+        <canvas></canvas>
+        <div class="badge"><span class="b-dot"></span><span class="b-name">Оба глаза</span><span class="b-val">0,00 · 0,00 Д</span></div>
+      </div>
+      <div class="view" data-eye="left">
+        <canvas></canvas>
+        <div class="badge"><span class="b-dot"></span><span class="b-name">Левый</span><span class="b-val">0,00 Д</span></div>
+      </div>
+      <div class="view" data-eye="right">
+        <canvas></canvas>
+        <div class="badge"><span class="b-dot"></span><span class="b-name">Правый</span><span class="b-val">0,00 Д</span></div>
+      </div>
+    </div>
+
+    <div class="caption">
+      <span class="info">i</span>
+      <span id="captionText">Один кадр — как эту картинку видит человек, у которого оба глаза с такими диоптриями: мозг опирается на более чёткий глаз, второй добавляет лишь лёгкую дымку.</span>
+    </div>
+  </main>
+</div>
+
+<dialog class="modal" id="whyModal" aria-labelledby="whyTitle">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="whyTitle">Почему «плюс» размывает так же, как «минус»?</h2>
+      <button class="modal-close" id="whyClose" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="modal-tabs" role="tablist">
+      <button class="mtab is-active" data-mtab="why">Почему + так же?</button>
+      <button class="mtab" data-mtab="disease">Болезни глаз</button>
+    </div>
+
+    <section class="mpane" data-pane="why">
+    <p class="lead">Диоптрия — это сила линзы, а не «плюс к зрению». Плюсовое стекло не делает картинку резче: оно просто сдвигает фокус в другую сторону от сетчатки. А сетчатка в обоих случаях получает не точку, а размытое пятно.</p>
+    <svg class="eye-svg" viewBox="0 0 720 178" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Схема: при минусе фокус перед сетчаткой, при плюсе — за сетчаткой"><g transform="translate(0,0)"><ellipse cx="110" cy="75" rx="68" ry="58" fill="rgba(255,255,255,.035)" stroke="#3b4557" stroke-width="1.4"/><path d="M 54 30 Q 26 75 54 120" fill="rgba(110,160,220,.10)" stroke="#5b7fa8" stroke-width="2.2"/><path d="M 152 28 A 68 58 0 0 1 152 122" fill="none" stroke="#c98a63" stroke-width="3"/><path d="M 72.0 50 Q 80.0 75 72.0 100 Q 64.0 75 72.0 50 Z" fill="rgba(120,180,255,.20)" stroke="#6f9bd1" stroke-width="1.4"/><line x1="2" y1="45.0" x2="69.0" y2="45.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 41.8 L 69.0 45.0 L 63.0 48.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="75.0" x2="69.0" y2="75.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 71.8 L 69.0 75.0 L 63.0 78.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="105.0" x2="69.0" y2="105.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 101.8 L 69.0 105.0 L 63.0 108.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="72.0" y1="45.0" x2="150.0" y2="75.0" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="150.0" y1="75.0" x2="177.0" y2="64.6" stroke="#e6edf7" stroke-width="1.4" opacity=".8"/><line x1="72.0" y1="75.0" x2="150.0" y2="75.0" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="150.0" y1="75.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.4" opacity=".8"/><line x1="72.0" y1="105.0" x2="150.0" y2="75.0" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="150.0" y1="75.0" x2="177.0" y2="85.4" stroke="#e6edf7" stroke-width="1.4" opacity=".8"/><circle cx="150.0" cy="75.0" r="3.4" fill="#3ad9c0"/><circle cx="150.0" cy="75.0" r="7" fill="none" stroke="#3ad9c0" stroke-width="1" opacity=".35"/><line x1="177.0" y1="64.6" x2="177.0" y2="85.4" stroke="#3ad9c0" stroke-width="5" stroke-linecap="round"/><circle cx="177.0" cy="75.0" r="10.4" fill="none" stroke="#3ad9c0" stroke-width="1" opacity=".5" stroke-dasharray="2 2"/><text x="105" y="152" text-anchor="middle" font-size="11" font-weight="700" fill="#3ad9c0">−3,00 Д · близорукость</text><text x="105" y="167" text-anchor="middle" font-size="10" fill="#93a1b5">фокус перед сетчаткой</text></g><g transform="translate(240,0)"><ellipse cx="110" cy="75" rx="68" ry="58" fill="rgba(255,255,255,.035)" stroke="#3b4557" stroke-width="1.4"/><path d="M 54 30 Q 26 75 54 120" fill="rgba(110,160,220,.10)" stroke="#5b7fa8" stroke-width="2.2"/><path d="M 152 28 A 68 58 0 0 1 152 122" fill="none" stroke="#c98a63" stroke-width="3"/><path d="M 72.0 50 Q 80.0 75 72.0 100 Q 64.0 75 72.0 50 Z" fill="rgba(120,180,255,.20)" stroke="#6f9bd1" stroke-width="1.4"/><line x1="2" y1="45.0" x2="69.0" y2="45.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 41.8 L 69.0 45.0 L 63.0 48.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="75.0" x2="69.0" y2="75.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 71.8 L 69.0 75.0 L 63.0 78.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="105.0" x2="69.0" y2="105.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 101.8 L 69.0 105.0 L 63.0 108.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="72.0" y1="45.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="177.0" y1="75.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.4" opacity=".8"/><line x1="72.0" y1="75.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="177.0" y1="75.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.4" opacity=".8"/><line x1="72.0" y1="105.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="177.0" y1="75.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.4" opacity=".8"/><circle cx="177.0" cy="75.0" r="3.4" fill="#8b7cf6"/><circle cx="177.0" cy="75.0" r="7" fill="none" stroke="#8b7cf6" stroke-width="1" opacity=".35"/><line x1="177.0" y1="75.0" x2="177.0" y2="75.0" stroke="#8b7cf6" stroke-width="5" stroke-linecap="round"/><circle cx="177.0" cy="75.0" r="0.0" fill="none" stroke="#8b7cf6" stroke-width="1" opacity=".5" stroke-dasharray="2 2"/><text x="105" y="152" text-anchor="middle" font-size="11" font-weight="700" fill="#8b7cf6">0,00 Д · норма</text><text x="105" y="167" text-anchor="middle" font-size="10" fill="#93a1b5">фокус ровно на сетчатке</text></g><g transform="translate(480,0)"><ellipse cx="110" cy="75" rx="68" ry="58" fill="rgba(255,255,255,.035)" stroke="#3b4557" stroke-width="1.4"/><path d="M 54 30 Q 26 75 54 120" fill="rgba(110,160,220,.10)" stroke="#5b7fa8" stroke-width="2.2"/><path d="M 152 28 A 68 58 0 0 1 152 122" fill="none" stroke="#c98a63" stroke-width="3"/><path d="M 72.0 50 Q 80.0 75 72.0 100 Q 64.0 75 72.0 50 Z" fill="rgba(120,180,255,.20)" stroke="#6f9bd1" stroke-width="1.4"/><line x1="2" y1="45.0" x2="69.0" y2="45.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 41.8 L 69.0 45.0 L 63.0 48.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="75.0" x2="69.0" y2="75.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 71.8 L 69.0 75.0 L 63.0 78.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="105.0" x2="69.0" y2="105.0" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><path d="M 63.0 101.8 L 69.0 105.0 L 63.0 108.2" fill="none" stroke="#8fa3bd" stroke-width="1.5" stroke-linecap="round"/><line x1="72.0" y1="45.0" x2="177.0" y2="85.7" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="177.0" y1="85.7" x2="235.0" y2="75.0" stroke="#e6edf7" stroke-width="1.1" stroke-dasharray="3 3" opacity=".4"/><line x1="72.0" y1="75.0" x2="177.0" y2="75.0" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="177.0" y1="75.0" x2="235.0" y2="75.0" stroke="#e6edf7" stroke-width="1.1" stroke-dasharray="3 3" opacity=".4"/><line x1="72.0" y1="105.0" x2="177.0" y2="64.3" stroke="#e6edf7" stroke-width="1.6" stroke-linecap="round"/><line x1="177.0" y1="64.3" x2="235.0" y2="75.0" stroke="#e6edf7" stroke-width="1.1" stroke-dasharray="3 3" opacity=".4"/><circle cx="235.0" cy="75.0" r="3.4" fill="none" stroke="#ffb648" stroke-width="1.6" stroke-dasharray="2 2"/><line x1="177.0" y1="64.3" x2="177.0" y2="85.7" stroke="#ffb648" stroke-width="5" stroke-linecap="round"/><circle cx="177.0" cy="75.0" r="10.7" fill="none" stroke="#ffb648" stroke-width="1" opacity=".5" stroke-dasharray="2 2"/><text x="105" y="152" text-anchor="middle" font-size="11" font-weight="700" fill="#ffb648">+3,00 Д · дальнозоркость</text><text x="105" y="167" text-anchor="middle" font-size="10" fill="#93a1b5">фокус за сетчаткой</text></g></svg>
+    <div class="why-item">
+      <span class="why-ico" style="background:#3ad9c0">≈</span>
+      <p><b>Размытие зависит от силы ошибки, а не от её знака.</b> Если фокус не попал на сетчатку, каждая точка мира превращается в кружок рассеяния диаметром ≈ диаметр зрачка&nbsp;×&nbsp;|диоптрии|. При −2,00 и +2,00 кружки одинаковые — и размытие одинаковое.</p>
+    </div>
+    <div class="why-item">
+      <span class="why-ico" style="background:#3ad9c0">−</span>
+      <p><b>Минус.</b> Глаз «слишком сильный» (чаще всего просто вытянут): фокус останавливается перед сетчаткой. Аккомодация здесь не помогает — мышца умеет только добавлять оптическую силу, то есть делать ещё «плюсовее». Поэтому близорукость видна всегда и правится только минусовыми очками.</p>
+    </div>
+    <div class="why-item">
+      <span class="why-ico" style="background:#ffb648">+</span>
+      <p><b>Плюс.</b> Глаз «слишком слабый» (или короткий): фокус уходит за сетчатку. И вот здесь есть лазейка — хрусталик может стать выпуклее и добавить до +6…+8 Д. Именно поэтому у молодых людей +1,00…+2,00 часто вообще не размывает: глаз компенсирует сам.</p>
+    </div>
+    <div class="why-item">
+      <span class="why-ico" style="background:#ffb648">!</span>
+      <p><b>Но за это платят напряжением.</b> Чёткость при плюсе достаётся постоянной работе цилиарной мышцы: к вечеру — усталость, тяжесть в глазах, головная боль, хуже вблизи. С возрастом запас аккомодации падает (после 40 лет — пресбиопия), и тот же +2,00 становится отчётливо мутным. У детей запас 10–14 Д, поэтому «+3 в 7 лет» и «+3 в 50 лет» — совершенно разные вещи.</p>
+    </div>
+    <div class="why-item">
+      <span class="why-ico" style="background:#8b7cf6">◎</span>
+      <p><b>Почему пятно, а не точка.</b> Свет от одной точки должен собраться в точку на сетчатке. Не собрался — получился кружок: при зрачке 4 мм и ошибке 2,00 Д это ≈ 0,14 мм на сетчатке (вся сетчатка ≈ 32 мм). Отсюда два бытовых следствия: <b>чем шире зрачок</b> (вечер, темнота, капли для расширения) — тем сильнее размытие, а <b>прищуривание</b> работает как диафрагма: дырка меньше — кружок меньше — видно резче.</p>
+    </div>
+    <div class="why-item">
+      <span class="why-ico" style="background:#8b7cf6">⤢</span>
+      <p><b>Почему плюсовые очки «увеличивают», но не «улучшают».</b> Плюсовая линза действительно немного увеличивает — примерно 1–2 % на каждую диоптрию. Лупа тоже увеличивает, но если она не в фокусе, вы увидите большую мутную картинку. Резкость даёт не знак стекла, а совпадение фокуса с сетчаткой.</p>
+    </div>
+    <div class="why-item">
+      <span class="why-ico" style="background:#3ad9c0">±</span>
+      <p><b>А если «и плюс, и минус» сразу?</b> Так бывает: в рецепте пишут сферу и цилиндр, например <b>Sph +1,00 / Cyl −2,00 / Ax 90</b> — это смешанный астигматизм: по одной оси глаз «плюсовой», по другой «минусовой». Симулятор такое не воспроизводит (он считает только сферическую ошибку), но именно поэтому один и тот же глаз может «плюсовать» по вертикали и «минусовать» по горизонтали.</p>
+    </div>
+    <div class="why-item">
+      <span class="why-ico" style="background:#ffb648">℞</span>
+      <p><b>Как читать рецепт.</b> <b>OD</b> — правый глаз, <b>OS</b> — левый. <b>Sph</b> (сфера) — та самая «плюс/минус» диоптрия. <b>Cyl</b> (цилиндр) — астигматизм, <b>Ax</b> (ось) — его направление в градусах. <b>Add</b> — добавка для близи после 40 лет. <b>Vis OD/OS</b> — острота зрения в строчках таблицы.</p>
+    </div>
+
+    <div class="faq">
+      <div class="faq-q">«А если я вижу плохо и в минусе, и в плюсе?»</div>
+      <p class="faq-a">Скорее всего дело не в рефракции, а в астигматизме, помутнении сред глаза (катаракта) или в том, что глаз плохо «перефокусируется» (нарушение аккомодации). Разница между «плохо в любой оправе» и «плохо только вдали» — ключевая, и её определяет врач.</p>
+      <div class="faq-q">«Упражнения для глаз возвращают зрение?»</div>
+      <p class="faq-a">Гимнастика снимает усталость и сухость, но форму глаза и кривизну роговицы не меняет — то есть рефракцию не лечит. Прогрессирующую близорукость у детей тормозят каплями атропина в низкой концентрации, ортокератологией и специальными линзами — только по назначению врача. Обещания «вернуть зрение без очков» — маркетинг.</p>
+      <div class="faq-q">«Почему в 20 лет +2 не мешало, а в 45 вдруг мешает?»</div>
+      <p class="faq-a">Запас аккомодации с возрастом падает: у школьника ~14 Д, у 40-летнего ~4–5 Д, у 50-летнего ~2 Д. Пока запаса хватало, глаз сам «подтягивал» плюс. Как только запас кончился — плюс стал виден, а к чтению понадобились очки с Add.</p>
+    </div>
+    <p class="why-note">Вывод: плюс не «улучшает» зрение — он так же уводит фокус с сетчатки, просто в другую сторону. Разница лишь в том, что плюс молодой глаз может временно скомпенсировать, а минус — нет. Это оптическая иллюстрация, а не диагноз: рефракцию и остроту зрения измеряет врач.</p>
+
+    </section>
+
+    <section class="mpane" data-pane="disease" hidden>
+    <p class="lead">Рефракция — это «как глаз фокусирует». Болезни — это «что ещё может испортиться». Ниже — частые состояния: что происходит, как выглядит и можно ли показать это в симуляторе.</p>
+    <div class="mgroup-title">Рефракция и фокусировка</div>
+    <div class="dis-grid"><article class="dis"><div class="dis-head"><span class="dis-name">Близорукость</span><span class="dis-latin">миопия</span><span class="dis-badge ok">в симуляторе</span></div><p>Глаз «слишком сильный» или вытянутый: фокус перед сетчаткой. Даль размыто, вблизи чётко. Обычно растёт в школе и останавливается к 18–22 годам.</p><button class="dis-try" data-try="-3,-3">Показать −3,00 Д</button></article><article class="dis"><div class="dis-head"><span class="dis-name">Дальнозоркость</span><span class="dis-latin">гиперметропия</span><span class="dis-badge ok">в симуляторе</span></div><p>Фокус за сетчаткой. Молодые компенсируют аккомодацией и видят чётко ценой напряжения; с возрастом запас кончается — и «вдруг» становится мутно.</p><button class="dis-try" data-try="2.5,2.5">Показать +2,50 Д</button></article><article class="dis"><div class="dis-head"><span class="dis-name">Астигматизм</span><span class="dis-latin">astigmatism</span><span class="dis-badge no">не моделируется</span></div><p>Роговица или хрусталик кривые не как мяч, а как дыня: по одной оси фокус ближе, по другой дальше. Буквы двоятся и «тянутся» в одном направлении, ореолы от фонарей. Правится цилиндром (Cyl / Ax).</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Пресбиопия</span><span class="dis-latin">presbyopia</span><span class="dis-badge ok">в симуляторе</span></div><p>После 40 хрусталик теряет эластичность и не может стать выпуклее: вблизи не хватает плюса. Это не болезнь, а возраст — и бывает у всех, даже у тех, кто всю жизнь видел идеально.</p><button class="dis-try" data-try="2.5,2.5" data-accom="off">Показать +2,50 без аккомодации</button></article><article class="dis"><div class="dis-head"><span class="dis-name">Анизометропия</span><span class="dis-latin">anisometropia</span><span class="dis-badge ok">в симуляторе</span></div><p>Разная рефракция двух глаз (разница больше 1 Д). Очковая коррекция переносится плохо, а у детей мозг просто «отключает» худший глаз — так развивается амблиопия.</p><button class="dis-try" data-try="-0.75,-3.25">Показать −0,75 / −3,25</button></article><article class="dis"><div class="dis-head"><span class="dis-name">Спазм аккомодации</span><span class="dis-latin">псевдомиопия</span><span class="dis-badge no">не моделируется</span></div><p>Мышца зажата и не расслабляется: зрение вдали «плавает», хуже к вечеру. Часто путают с близорукостью — поэтому рефракцию проверяют на каплях (циклоплегия).</p></article>
+    </div>
+    <div class="mgroup-title">Мозг, мышцы и сборка картинки</div>
+    <div class="dis-grid"><article class="dis"><div class="dis-head"><span class="dis-name">Амблиопия</span><span class="dis-latin">«ленивый глаз»</span><span class="dis-badge no">не моделируется</span></div><p>Мозг в детстве перестал пользоваться одним глазом — из-за косоглазия, анизометропии или помутнения. Очки не помогают: нужна окклюзия (заклейка) и тренировки, и только примерно до 7–12 лет.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Косоглазие</span><span class="dis-latin">страбизм</span><span class="dis-badge no">не моделируется</span></div><p>Оси глаз не сходятся на одной точке: картинки двоятся, и мозг подавляет одну из них. У детей — риск амблиопии; внезапное косоглазие у взрослого требует врача.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Диплопия</span><span class="dis-latin">двоение</span><span class="dis-badge no">не моделируется</span></div><p>Двоится не «пятно», а два отдельных изображения. Причина — мышцы, нервы или их ядра в мозге, поэтому внезапное двоение — повод к врачу, а не «устал».</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Нистагм</span><span class="dis-latin">nystagmus</span><span class="dis-badge no">не моделируется</span></div><p>Непроизвольные колебания глаз: картинка «дрожит» и плывёт, острота зрения снижена. Часто врождённый, но появляется и при болезнях мозга и вестибулярной системы.</p></article>
+    </div>
+    <div class="mgroup-title">Болезни глаз</div>
+    <div class="dis-grid"><article class="dis"><div class="dis-head"><span class="dis-name">Катаракта</span><span class="dis-latin">cataract</span><span class="dis-badge no">не моделируется</span></div><p>Помутнение хрусталика: пелена, жёлто-коричневый оттенок, слепит от фар, хуже в сумерках. Лечится операцией — хрусталик меняют на искусственный (ИОЛ). Главная причина обратимой слепоты в мире.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Глаукома</span><span class="dis-latin">glaucoma</span><span class="dis-badge no">не моделируется</span></div><p>Повышенное внутриглазное давление постепенно убивает зрительный нерв. Начинается с сужения полей зрения по краям (заметно поздно), центр сохраняется долго. Необратима — поэтому её ищут на профилактике.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Кератоконус</span><span class="dis-latin">keratoconus</span><span class="dis-badge no">не моделируется</span></div><p>Роговица истончается и выпячивается конусом. Неправильный астигматизм, ореолы, зрение падает и плохо правится очками. Начинается в подростковом возрасте; прогресс тормозят кросслинкингом.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Диабетическая ретинопатия</span><span class="dis-latin">diabetic retinopathy</span><span class="dis-badge no">не моделируется</span></div><p>Сахар повреждает капилляры сетчатки: точки, кровоизлияния, отёк центра. Может годами не давать симптомов — поэтому диабетикам нужен осмотр глаз каждый год.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Возрастная макулодистрофия</span><span class="dis-latin">ВМД / AMD</span><span class="dis-badge no">не моделируется</span></div><p>Гибнет центральная зона сетчатки: центр «выпадает» — не читается текст и не узнаётся лицо, — а периферия остаётся. Ведущая причина потери зрения у людей 60+.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Отслойка сетчатки</span><span class="dis-latin">retinal detachment</span><span class="dis-badge no">не моделируется</span></div><p>Сетчатка отделяется от сосудистой оболочки: «занавеска» с одной стороны, вспышки, плавающие точки. Это <b>экстренно</b> — счёт на часы, промедление грозит необратимой слепотой.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Синдром сухого глаза</span><span class="dis-latin">dry eye</span><span class="dis-badge no">не моделируется</span></div><p>Слёзная плёнка не держится: жжение, «песок», колебания чёткости при работе за экраном, хуже в помещениях с кондиционером.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Кератит и увеит</span><span class="dis-latin">воспаление</span><span class="dis-badge no">не моделируется</span></div><p>Воспаление роговицы или сосудистой оболочки: боль, светобоязнь, покраснение, туман. Не «само пройдёт» — без лечения остаются рубцы и падение зрения.</p></article>
+    </div>
+    <div class="mgroup-title">Особые случаи</div>
+    <div class="dis-grid"><article class="dis"><div class="dis-head"><span class="dis-name">Цветовая слепота</span><span class="dis-latin">дальтонизм</span><span class="dis-badge no">не моделируется</span></div><p>Нарушены колбочки одного типа: путаются красный и зелёный. На чёткость не влияет — картинка резкая, просто «не та» по цвету.</p></article><article class="dis"><div class="dis-head"><span class="dis-name">Гемианопсия</span><span class="dis-latin">выпадение половины поля</span><span class="dis-badge no">не моделируется</span></div><p>Выпадает половина поля зрения в обоих глазах — обычно после инсульта или при опухоли. Проблемы полей зрения почти всегда «мозговые», а не глазные.</p></article>
+    </div>
+    <p class="why-note">Симулятор рисует только сферический дефокус — оптику «плюс/минус». Астигматизм, катаракту, глаукому и остальное он не показывает: там другие механизмы. Если зрение упало резко, появились вспышки, «занавеска», сильная боль или потемнение — это не «устал», а повод к врачу сегодня. Справочник не заменяет приём офтальмолога.</p>
+    </section>
+  </div>
+</dialog>
+
+<script>
+(function(){
+  "use strict";
+
+  /* -------- данные по умолчанию -------- */
+  const DEFAULT_PHOTO = "__DEFAULT_PHOTO__";
+
+  const MIN_D = -12, MAX_D = 12, STEP = 0.25;
+  const MAX_ACCOMODATION = 6; // диоптрий, грубая оценка для молодого глаза
+
+  const state = {
+    eyes: { left: 0, right: 0 },
+    mode: "fused",
+    pupil: 4.5,
+    fov: 40,
+    accommodation: false,
+    original: false,
+    linked: false,
+    source: "photo"
+  };
+
+  const photoImg = new Image();
+  const chartImg = new Image();
+  let currentImg = null;
+
+  /* -------- утилиты -------- */
+  const fmt = (v) => {
+    if (Math.abs(v) < 0.001) return "0,00";
+    const s = Math.abs(v).toFixed(2).replace(".", ",");
+    return (v > 0 ? "+" : "−") + s;
+  };
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const roundToStep = (v) => Math.round(v / STEP) * STEP;
+
+  function blurSigma(diopters, cssWidth){
+    let d = diopters;
+    if (state.accommodation && d > 0) d = Math.max(0, d - MAX_ACCOMODATION);
+    const pupilM = state.pupil / 1000;
+    // радиус кружка рассеяния в угловой мере (рад) ≈ 0.5 * d_зрачка(м) * |D|
+    const radiusRad = 0.5 * pupilM * Math.abs(d);
+    const pxPerRad = cssWidth / (state.fov * Math.PI / 180);
+    const radiusPx = radiusRad * pxPerRad;
+    // эквивалентная сигма гауссова размытия для диска такого радиуса
+    return radiusPx / 1.5;
+  }
+
+  function describe(d){
+    const a = Math.abs(d);
+    if (a < 0.01) return "норма";
+    const word = d < 0 ? "близорукость" : "дальнозоркость";
+    const level = a < 1 ? "слабая" : a < 3 ? "умеренная" : a < 6 ? "высокая" : "очень высокая";
+    return word + " · " + level;
+  }
+
+  /* -------- таблица букв (генерируется в SVG) -------- */
+  function buildChart(){
+    const W = 1100, H = 733;
+    // больше строк: от огромной «Ш» до совсем мелких, чтобы проверять и слабое, и сильное размытие
+    const rows = [
+      { size: 151, text: "Ш" },
+      { size: 109, text: "БЫ" },
+      { size: 80,  text: "КЮМ" },
+      { size: 60,  text: "НАЕС" },
+      { size: 46,  text: "ВОЛШЬ" },
+      { size: 35,  text: "ДЕЛОТК" },
+      { size: 27,  text: "КРШМБВЕЮ" },
+      { size: 20,  text: "НСОВКМЕШЫД" },
+      { size: 15,  text: "БДЕЛОТКРШМВ" },
+      { size: 11.5,text: "ЮНАЕСВОЛШЬБКМ" },
+      { size: 8.5, text: "МЕШЫДНСОВКЮБЫШРТ" }
+    ];
+    const lh = rows.map(r => r.size * 1.16);
+    const total = lh.reduce((a, b) => a + b, 0);
+    let y = (H - total) / 2;
+
+    let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
+    out += `<rect width="${W}" height="${H}" fill="#f7f6f2"/>`;
+    rows.forEach((r, i) => {
+      const baseline = y + r.size * 0.82;
+      out += `<text x="${W/2}" y="${baseline.toFixed(1)}" font-family="Helvetica,Arial,sans-serif" `
+           + `font-size="${r.size}" font-weight="700" fill="#14161a" text-anchor="middle" `
+           + `letter-spacing="${(r.size * 0.09).toFixed(1)}">${r.text}</text>`;
+      y += lh[i];
+    });
+    out += `</svg>`;
+    chartImg.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(out);
+  }
+
+  /* -------- отрисовка -------- */
+  const views = Array.from(document.querySelectorAll(".view"));
+  let raf = null;
+  const canvasFilterSupport = (() => {
+    try {
+      const c = document.createElement("canvas").getContext("2d");
+      c.filter = "blur(2px)";
+      return c.filter === "blur(2px)";
+    } catch(e){ return false; }
+  })();
+
+  function renderAll(){
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = null;
+      views.forEach(renderView);
+    });
+  }
+
+  // рисует один слой картинки с размытием sigma и прозрачностью alpha
+  function drawLayer(ctx, w, h, sigma, alpha){
+    if (!currentImg || !currentImg.complete || !currentImg.naturalWidth) return;
+    // запас по краям, чтобы размытие не давало тёмную рамку
+    const pad = Math.min(Math.max(sigma, 0) * 3, Math.min(w, h) * 0.18);
+    const boxW = w + pad * 2, boxH = h + pad * 2;
+    const iw = currentImg.naturalWidth, ih = currentImg.naturalHeight;
+    const scale = Math.max(boxW / iw, boxH / ih);
+    const dw = iw * scale, dh = ih * scale;
+    const dx = (w - dw) / 2, dy = (h - dh) / 2;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.imageSmoothingQuality = "high";
+    if (sigma > 0.12 && canvasFilterSupport) ctx.filter = "blur(" + sigma.toFixed(2) + "px)";
+    ctx.drawImage(currentImg, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  function cssBlurFallback(canvas, sigma, w, h){
+    if (sigma > 0.12){
+      canvas.style.filter = "blur(" + sigma.toFixed(2) + "px)";
+      const k = 1 + Math.min(0.16, (sigma * 2.2) / Math.min(w, h));
+      canvas.style.transform = "scale(" + k.toFixed(3) + ")";
+    } else {
+      canvas.style.filter = "";
+      canvas.style.transform = "";
+    }
+  }
+
+  function renderView(view){
+    if (view.hidden) return;
+    const canvas = view.querySelector("canvas");
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    if (w < 2 || h < 2) return;
+    const dpr = clamp(window.devicePixelRatio || 1, 1, 2);
+    const pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+    if (canvas.width !== pw || canvas.height !== ph){
+      canvas.width = pw; canvas.height = ph;
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#0b0e14";
+    ctx.fillRect(0, 0, w, h);
+    canvas.style.filter = "";
+    canvas.style.transform = "";
+    if (!currentImg || !currentImg.complete || !currentImg.naturalWidth) return;
+
+    const eye = view.dataset.eye;
+    const sL = blurSigma(state.eyes.left, w);
+    const sR = blurSigma(state.eyes.right, w);
+
+    if (state.original){
+      drawLayer(ctx, w, h, 0, 1);
+    } else if (eye === "fused"){
+      // слияние двух глаз: мозг опирается на более чёткий, второй добавляет дымку
+      const better = Math.min(sL, sR), worse = Math.max(sL, sR);
+      if (canvasFilterSupport){
+        drawLayer(ctx, w, h, worse, 1);
+        if (worse - better > 0.15) drawLayer(ctx, w, h, better, 0.68);
+      } else {
+        drawLayer(ctx, w, h, 0, 1);
+        cssBlurFallback(canvas, better, w, h);
+      }
+    } else {
+      const sigma = blurSigma(state.eyes[eye], w);
+      if (canvasFilterSupport){
+        drawLayer(ctx, w, h, sigma, 1);
+      } else {
+        drawLayer(ctx, w, h, 0, 1);
+        cssBlurFallback(canvas, sigma, w, h);
+      }
+    }
+
+    // мягкое затемнение по краям, чтобы размытые поля смотрелись естественно
+    const grad = ctx.createRadialGradient(w/2, h/2, Math.min(w,h)*0.32, w/2, h/2, Math.max(w,h)*0.72);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.20)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  /* -------- обновление интерфейса -------- */
+  function syncEyeCard(eyeEl){
+    const eye = eyeEl.dataset.eye;
+    const val = state.eyes[eye];
+    eyeEl.querySelector(".num").textContent = fmt(val);
+    eyeEl.querySelector(".value").classList.toggle("is-zero", Math.abs(val) < 0.001);
+    eyeEl.querySelector('input[type="range"]').value = String(val);
+    eyeEl.querySelector("[data-state]").textContent = describe(val);
+    eyeEl.querySelectorAll(".chip").forEach(chip => {
+      chip.classList.toggle("is-active", Math.abs(parseFloat(chip.dataset.set) - val) < 0.001);
+    });
+    const badge = document.querySelector('.view[data-eye="' + eye + '"] .b-val');
+    if (badge) badge.textContent = fmt(val) + " Д";
+  }
+
+  const CAPTIONS = {
+    fused: "Один кадр — как эту картинку видит человек, у которого оба глаза с такими диоптриями: мозг опирается на более чёткий глаз, второй добавляет лишь лёгкую дымку.",
+    both: "Минусовые диоптрии — близорукость, плюсовые — дальнозоркость. Размытие считается по модели дефокуса: радиус кружка рассеяния ≈ диаметр зрачка × диоптрии. Это упрощённая иллюстрация, а не медицинская диагностика.",
+    left: "Так картинку видит только левый глаз. Сравните с правым на вкладке «Правый» или с общим восприятием на «Как я вижу».",
+    right: "Так картинку видит только правый глаз. Сравните с левым на вкладке «Левый» или с общим восприятием на «Как я вижу»."
+  };
+
+  function syncAll(){
+    document.querySelectorAll(".eye").forEach(syncEyeCard);
+    document.querySelectorAll(".tab").forEach(tab => {
+      const on = tab.dataset.mode === state.mode;
+      tab.classList.toggle("is-active", on);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    const viewsWrap = document.getElementById("views");
+    viewsWrap.dataset.mode = state.mode;
+    views.forEach(v => {
+      const e = v.dataset.eye;
+      if (state.mode === "both") v.hidden = e === "fused";
+      else if (state.mode === "fused") v.hidden = e !== "fused";
+      else v.hidden = e !== state.mode;
+    });
+    // бейджи под текущий режим
+    views.forEach(v => {
+      const e = v.dataset.eye;
+      const badge = v.querySelector(".badge");
+      const tag = v.querySelector(".b-tag");
+      if (e === "fused"){
+        v.querySelector(".b-name").textContent = "Оба глаза";
+        v.querySelector(".b-val").textContent = fmt(state.eyes.left) + " · " + fmt(state.eyes.right) + " Д";
+        if (tag) tag.remove();
+        return;
+      }
+      if (state.mode === "both"){
+        v.querySelector(".b-name").textContent = e === "left" ? "Левый" : "Правый";
+        if (tag) tag.remove();
+      } else {
+        v.querySelector(".b-name").textContent = e === "left" ? "Левый глаз (OS)" : "Правый глаз (OD)";
+        if (!tag){
+          const t = document.createElement("span");
+          t.className = "b-tag";
+          t.textContent = "как видит";
+          badge.prepend(t);
+        }
+      }
+    });
+    const cap = document.getElementById("captionText");
+    if (cap) cap.textContent = CAPTIONS[state.mode] || CAPTIONS.both;
+    document.getElementById("pupilVal").textContent = String(state.pupil).replace(".", ",") + " мм";
+    document.getElementById("fovVal").textContent = state.fov + "°";
+    document.getElementById("linkEyes").setAttribute("aria-pressed", state.linked ? "true" : "false");
+    document.getElementById("linkEyes").classList.toggle("is-active", state.linked);
+    renderAll();
+  }
+
+  function setEye(eye, value, opts){
+    opts = opts || {};
+    const snapped = opts.exact ? Math.round(value * 100) / 100 : roundToStep(value);
+    const v = clamp(snapped, MIN_D, MAX_D);
+    state.eyes[eye] = Math.abs(v) < 0.001 ? 0 : v;
+    if (state.linked && !opts.fromOther){
+      const other = eye === "left" ? "right" : "left";
+      state.eyes[other] = state.eyes[eye];
+    }
+    syncAll();
+  }
+
+  /* -------- события: карточки глаз -------- */
+  document.querySelectorAll(".eye").forEach(eyeEl => {
+    const eye = eyeEl.dataset.eye;
+    eyeEl.querySelectorAll(".step").forEach(btn => {
+      btn.addEventListener("click", () => setEye(eye, state.eyes[eye] + parseFloat(btn.dataset.delta)));
+    });
+    eyeEl.querySelector('input[type="range"]').addEventListener("input", (e) => {
+      setEye(eye, parseFloat(e.target.value));
+    });
+    eyeEl.querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => setEye(eye, parseFloat(chip.dataset.set)));
+    });
+
+    // ручной ввод: клик по числу → можно набрать, например, 1,2
+    const valueBox = eyeEl.querySelector(".value");
+    const valueInput = eyeEl.querySelector(".value-input");
+    valueBox.addEventListener("click", () => {
+      if (valueBox.classList.contains("is-editing")) return;
+      valueBox.classList.add("is-editing");
+      valueInput.value = String(state.eyes[eye]).replace(".", ",");
+      valueInput.focus();
+      valueInput.select();
+    });
+    function commitInput(){
+      if (!valueBox.classList.contains("is-editing")) return;
+      const raw = valueInput.value.replace(",", ".").replace(/[^0-9.+-]/g, "");
+      const parsed = parseFloat(raw);
+      valueBox.classList.remove("is-editing");
+      if (!isNaN(parsed)) setEye(eye, parsed, { exact: true });
+      else syncAll();
+    }
+    valueInput.addEventListener("blur", commitInput);
+    valueInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter"){ e.preventDefault(); commitInput(); valueInput.blur(); }
+      if (e.key === "Escape"){ valueBox.classList.remove("is-editing"); syncAll(); valueInput.blur(); }
+      e.stopPropagation();
+    });
+    valueInput.addEventListener("input", () => {
+      const v = parseFloat(valueInput.value.replace(",", ".").replace(/[^0-9.+-]/g, ""));
+      if (!isNaN(v)) setEye(eye, v, { exact: true });
+    });
+    // стрелки клавиатуры на карточке
+    eyeEl.addEventListener("keydown", (e) => {
+      const big = e.shiftKey ? 1 : STEP;
+      if (e.key === "ArrowRight" || e.key === "ArrowUp"){ e.preventDefault(); setEye(eye, state.eyes[eye] + big); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown"){ e.preventDefault(); setEye(eye, state.eyes[eye] - big); }
+      if (e.key === "0" || e.key === "Home"){ e.preventDefault(); setEye(eye, 0); }
+    });
+  });
+
+  document.getElementById("linkEyes").addEventListener("click", (e) => {
+    state.linked = !state.linked;
+    if (state.linked) state.eyes.right = state.eyes.left;
+    e.currentTarget.classList.toggle("is-active", state.linked);
+    e.currentTarget.setAttribute("aria-pressed", state.linked ? "true" : "false");
+    syncAll();
+  });
+
+  document.querySelectorAll(".preset").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const [l, r] = btn.dataset.preset.split(",").map(Number);
+      state.eyes.left = l; state.eyes.right = r;
+      syncAll();
+    });
+  });
+
+  /* -------- режимы просмотра -------- */
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => { state.mode = tab.dataset.mode; syncAll(); });
+  });
+
+  document.getElementById("holdOriginal").addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    state.original = true;
+    document.getElementById("holdLabel").textContent = "Оригинал";
+    document.getElementById("holdOriginal").classList.add("is-active");
+    renderAll();
+  });
+  ["pointerup","pointerleave","pointercancel","blur"].forEach(ev => {
+    document.getElementById("holdOriginal").addEventListener(ev, () => {
+      if (!state.original) return;
+      state.original = false;
+      document.getElementById("holdLabel").textContent = "Удерживать: оригинал";
+      document.getElementById("holdOriginal").classList.remove("is-active");
+      renderAll();
+    });
+  });
+
+  /* -------- параметры модели -------- */
+  document.getElementById("pupil").addEventListener("input", (e) => {
+    state.pupil = parseFloat(e.target.value);
+    document.getElementById("pupilVal").textContent = String(state.pupil).replace(".", ",") + " мм";
+    renderAll();
+  });
+  document.getElementById("fov").addEventListener("input", (e) => {
+    state.fov = parseFloat(e.target.value);
+    document.getElementById("fovVal").textContent = state.fov + "°";
+    document.querySelectorAll(".mini").forEach(b => {
+      b.classList.toggle("is-active", parseFloat(b.dataset.fov) === state.fov);
+    });
+    renderAll();
+  });
+  document.querySelectorAll(".mini").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.fov = parseFloat(btn.dataset.fov);
+      document.getElementById("fov").value = String(state.fov);
+      document.getElementById("fovVal").textContent = state.fov + "°";
+      document.querySelectorAll(".mini").forEach(b => b.classList.toggle("is-active", b === btn));
+      renderAll();
+    });
+  });
+
+  document.getElementById("accom").addEventListener("change", (e) => {
+    state.accommodation = e.target.checked;
+    renderAll();
+  });
+
+  /* -------- загрузка картинки -------- */
+  const drop = document.getElementById("drop");
+  const fileInput = document.getElementById("fileInput");
+
+  function useImage(src, sourceName){
+    const img = new Image();
+    img.onload = () => {
+      currentImg = img;
+      renderAll();
+    };
+    img.src = src;
+  }
+
+  function markSource(name){
+    state.source = name;
+    document.querySelectorAll("[data-src]").forEach(b => {
+      b.classList.toggle("is-active", b.dataset.src === name);
+    });
+  }
+
+  function loadFile(file){
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      useImage(reader.result, "file");
+      markSource("file");
+      drop.querySelector(".drop-title").textContent = file.name.length > 34 ? file.name.slice(0, 32) + "…" : file.name;
+      drop.querySelector(".drop-sub").innerHTML = "Картинка загружена · <b>можно перетащить другую</b>";
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById("pickBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    fileInput.click();
+  });
+  drop.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) loadFile(e.target.files[0]);
+    e.target.value = "";
+  });
+
+  ["dragenter","dragover"].forEach(ev => {
+    document.addEventListener(ev, (e) => {
+      if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes("Files")) return;
+      e.preventDefault();
+      drop.classList.add("is-over");
+    });
+  });
+  ["dragleave","drop"].forEach(ev => {
+    document.addEventListener(ev, (e) => {
+      if (ev === "drop") e.preventDefault();
+      drop.classList.remove("is-over");
+    });
+  });
+  document.addEventListener("drop", (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  document.addEventListener("paste", (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const it of items){
+      if (it.type && it.type.startsWith("image/")){
+        const f = it.getAsFile();
+        if (f) loadFile(f);
+        break;
+      }
+    }
+  });
+
+  document.querySelectorAll("[data-src]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const which = btn.dataset.src;
+      markSource(which);
+      const img = which === "chart" ? chartImg : photoImg;
+      if (img.complete && img.naturalWidth) { currentImg = img; renderAll(); }
+      else img.addEventListener("load", () => { currentImg = img; renderAll(); }, { once: true });
+      drop.querySelector(".drop-title").textContent = "Перетащите фото сюда";
+      drop.querySelector(".drop-sub").innerHTML = "или вставьте из буфера обмена (Ctrl&nbsp;+&nbsp;V)<br>JPG, PNG, WebP — всё остаётся в браузере";
+    });
+  });
+
+  /* -------- горячие клавиши -------- */
+  document.addEventListener("keydown", (e) => {
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.key === "1"){ state.mode = "fused"; syncAll(); }
+    if (e.key === "2"){ state.mode = "both"; syncAll(); }
+    if (e.key === "3"){ state.mode = "left"; syncAll(); }
+    if (e.key === "4"){ state.mode = "right"; syncAll(); }
+  });
+
+  /* -------- ресайз -------- */
+  let resizeT = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(renderAll, 120);
+  });
+  if (window.ResizeObserver){
+    const ro = new ResizeObserver(() => renderAll());
+    document.querySelectorAll(".view").forEach(v => ro.observe(v));
+  }
+
+  /* -------- окно «почему» -------- */
+  const whyModal = document.getElementById("whyModal");
+  const whyTitle = document.getElementById("whyTitle");
+  const MODAL_TITLES = {
+    why: "Почему «плюс» размывает так же, как «минус»?",
+    disease: "Болезни и состояния глаз"
+  };
+  function showPane(name){
+    whyModal.querySelectorAll(".mtab").forEach(t => t.classList.toggle("is-active", t.dataset.mtab === name));
+    whyModal.querySelectorAll(".mpane").forEach(p => { p.hidden = p.dataset.pane !== name; });
+    whyTitle.textContent = MODAL_TITLES[name] || MODAL_TITLES.why;
+    const card = whyModal.querySelector(".modal-card");
+    if (card) card.scrollTop = 0;
+  }
+  whyModal.querySelectorAll(".mtab").forEach(t => {
+    t.addEventListener("click", () => showPane(t.dataset.mtab));
+  });
+  document.getElementById("whyBtn").addEventListener("click", () => {
+    if (!whyModal.open) whyModal.showModal();
+  });
+  document.getElementById("whyClose").addEventListener("click", () => whyModal.close());
+  whyModal.addEventListener("click", (e) => { if (e.target === whyModal) whyModal.close(); });
+
+  // «Показать в симуляторе» из справочника
+  whyModal.querySelectorAll("[data-try]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const [l, r] = btn.dataset.try.split(",").map(Number);
+      state.eyes.left = l;
+      state.eyes.right = r;
+      if (btn.dataset.accom === "off" || btn.dataset.accom === "on"){
+        state.accommodation = btn.dataset.accom === "on";
+        const box = document.getElementById("accom");
+        if (box) box.checked = state.accommodation;
+      }
+      whyModal.close();
+      state.mode = "fused";
+      syncAll();
+    });
+  });
+
+  /* -------- старт -------- */
+  buildChart();
+  const startWithPhoto = () => { currentImg = photoImg; renderAll(); };
+  photoImg.onload = startWithPhoto;
+  photoImg.src = DEFAULT_PHOTO;
+  if (photoImg.complete && photoImg.naturalWidth) startWithPhoto();
+  syncAll();
+})();
+</script>
+</body>
+</html>
